@@ -1,0 +1,124 @@
+# ============================================
+# TITANIC SURVIVAL PREDICTION
+# Complete ML Project
+# ============================================
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+# ============================================
+# STEP 1 — DATA LOAD KARO
+# ============================================
+url = "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+df = pd.read_csv(url)
+print("✅ Data Loaded!")
+print(f"Shape: {df.shape}")
+print(df.head())
+
+# ============================================
+# STEP 2 — DATA EXPLORE KARO
+# ============================================
+print("\n--- Missing Values ---")
+print(df.isnull().sum())
+
+print(f"\nTotal Passengers : {len(df)}")
+print(f"Survived         : {df['Survived'].sum()}")
+print(f"Died             : {len(df) - df['Survived'].sum()}")
+
+# ============================================
+# STEP 3 — DATA CLEANING KARO
+# ============================================
+# Age ki missing values median se fill karo
+df["Age"] = df["Age"].fillna(df["Age"].median())
+
+# Cabin drop karo — 77% missing!
+df.drop("Cabin", axis=1, inplace=True)
+
+# Embarked ki 2 missing rows drop karo
+df.dropna(subset=["Embarked"], inplace=True)
+
+print("\n✅ Data Cleaned!")
+print(df.isnull().sum())
+
+# ============================================
+# STEP 4 — FEATURE ENGINEERING
+# ============================================
+# Sirf useful columns lo
+df_model = df[["Survived", "Pclass", "Sex", "Age", "Fare", "Embarked"]]
+
+# Text ko numbers mein badlo
+df_model = pd.get_dummies(df_model, columns=["Sex", "Embarked"])
+
+print("\n✅ Features Ready!")
+print(df_model.head())
+
+# ============================================
+# STEP 5 — MODEL TRAIN KARO
+# ============================================
+# X aur y banao
+X = df_model.drop("Survived", axis=1)
+y = df_model["Survived"]
+
+# Train test split — 80/20
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print(f"\nTraining passengers : {len(X_train)}")
+print(f"Testing passengers  : {len(X_test)}")
+
+# Model banao aur train karo
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+print("\n✅ Model Trained!")
+
+# ============================================
+# STEP 6 — PREDICT KARO
+# ============================================
+predictions = model.predict(X_test)
+
+# ============================================
+# STEP 7 — ACCURACY DEKHO
+# ============================================
+accuracy = accuracy_score(y_test, predictions)
+print(f"\n🎯 Model Accuracy: {accuracy:.2f}")
+print("\nDetailed Report:")
+print(classification_report(y_test, predictions))
+
+# ============================================
+# STEP 8 — FEATURE IMPORTANCE
+# ============================================
+importance = pd.DataFrame({
+    "Feature"   : X.columns,
+    "Importance": model.feature_importances_
+}).sort_values("Importance", ascending=False)
+
+print("\n--- Feature Importance ---")
+print(importance)
+
+# ============================================
+# STEP 9 — NAYA PASSENGER PREDICT KARO
+# ============================================
+# Ek naya passenger banao
+# Pclass=1, Age=25, Fare=100, Female, Embarked S
+naya_passenger = pd.DataFrame({
+    "Pclass"      : [1],
+    "Age"         : [25],
+    "Fare"        : [100],
+    "Sex_female"  : [True],
+    "Sex_male"    : [False],
+    "Embarked_C"  : [False],
+    "Embarked_Q"  : [False],
+    "Embarked_S"  : [True]
+})
+
+result = model.predict(naya_passenger)
+print("\n--- Naya Passenger ---")
+print(f"Pclass: 1, Age: 25, Female, Fare: 100")
+if result[0] == 1:
+    print("✅ Passenger SURVIVED!")
+else:
+    print("😢 Passenger DIED!")
